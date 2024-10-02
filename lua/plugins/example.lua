@@ -1,95 +1,60 @@
--- since this is just an example spec, don't actually load anything here and return an empty spec
--- stylua: ignore
--- if true then return {} end
-
--- every spec file under the "plugins" directory will be loaded automatically by lazy.nvim
---
--- In your plugin files, you can:
--- * add extra plugins
--- * disable/enabled LazyVim plugins
--- * override the configuration of LazyVim plugins
 return {
-  -- add gruvbox
-  -- { "ellisonleao/gruvbox.nvim" },
-  --
-  -- -- change trouble config
   {
     "folke/trouble.nvim",
-    -- opts will be merged with the parent spec
     opts = { use_diagnostic_signs = true },
   },
-  --
-  -- -- disable trouble
-  -- { "folke/trouble.nvim", enabled = false },
-  --
-  -- override nvim-cmp and add cmp-emoji
-  -- {
-  --   "hrsh7th/nvim-cmp",
-  --   dependencies = { "hrsh7th/cmp-emoji" },
-  --   ---@param opts cmp.ConfigSchema
-  --   opts = function(_, opts)
-  --     table.insert(opts.sources, { name = "emoji" })
-  --   end,
-  -- },
-  --
+  {
+    "echasnovski/mini.animate",
+    recommended = true,
+    event = "VeryLazy",
+    opts = function()
+      -- don't use animate when scrolling with the mouse
+      local mouse_scrolled = false
+      for _, scroll in ipairs({ "Up", "Down" }) do
+        local key = "<ScrollWheel" .. scroll .. ">"
+        vim.keymap.set({ "", "i" }, key, function()
+          mouse_scrolled = true
+          return key
+        end, { expr = true })
+      end
 
-  -- add tsserver and setup with typescript.nvim instead of lspconfig
-  -- {
-  --   "neovim/nvim-lspconfig",
-  --   dependencies = {
-  --     "jose-elias-alvarez/typescript.nvim",
-  --     init = function()
-  --       require("lazyvim.util").lsp.on_attach(function(_, buffer)
-  --         -- stylua: ignore
-  --         vim.keymap.set( "n", "<leader>co", "TypescriptOrganizeImports", { buffer = buffer, desc = "Organize Imports" })
-  --         vim.keymap.set("n", "<leader>cR", "TypescriptRenameFile", { desc = "Rename File", buffer = buffer })
-  --       end)
-  --     end,
-  --   },
-  --   ---@class PluginLspOpts
-  --   opts = {
-  --     ---@type lspconfig.options
-  --     servers = {
-  --       -- tsserver will be automatically installed with mason and loaded with lspconfig
-  --       tsserver = {},
-  --     },
-  --     -- you can do any additional lsp server setup here
-  --     -- return true if you don't want this server to be setup with lspconfig
-  --     ---@type table<string, fun(server:string, opts:_.lspconfig.options):boolean?>
-  --     setup = {
-  --       -- example to setup with typescript.nvim
-  --       tsserver = function(_, opts)
-  --         require("typescript").setup({ server = opts })
-  --         return true
-  --       end,
-  --       -- Specify * to use this function as a fallback for any server
-  --       -- ["*"] = function(server, opts) end,
-  --     },
-  --   },
-  -- },
-  --
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "grug-far",
+        callback = function()
+          vim.b.minianimate_disable = true
+        end,
+      })
 
-  -- -- the opts function can also be used to change the default opts:
-  -- {
-  --   "nvim-lualine/lualine.nvim",
-  --   event = "VeryLazy",
-  --   opts = function(_, opts)
-  --     table.insert(opts.sections.lualine_x, "😄")
-  --   end,
-  -- },
-  --
-  -- -- or you can return new options to override all the defaults
-  -- {
-  --   "nvim-lualine/lualine.nvim",
-  --   event = "VeryLazy",
-  --   opts = function()
-  --     return {
-  --       --[[add your custom lualine config here]]
-  --     }
-  --   end,
-  -- },
-  --
-  -- -- use mini.starter instead of alpha
+      LazyVim.toggle.map("<leader>ua", {
+        name = "Mini Animate",
+        get = function()
+          return not vim.g.minianimate_disable
+        end,
+        set = function(state)
+          vim.g.minianimate_disable = not state
+        end,
+      })
+
+      local animate = require("mini.animate")
+      return {
+        resize = {
+          timing = animate.gen_timing.linear({ duration = 50, unit = "total" }),
+        },
+        scroll = {
+          timing = animate.gen_timing.linear({ duration = 150, unit = "total" }),
+          subscroll = animate.gen_subscroll.equal({
+            predicate = function(total_scroll)
+              if mouse_scrolled then
+                mouse_scrolled = false
+                return false
+              end
+              return total_scroll > 1
+            end,
+          }),
+        },
+      }
+    end,
+  },
   { import = "lazyvim.plugins.extras.ui.mini-starter" },
   {
     "echasnovski/mini.icons",
@@ -103,167 +68,42 @@ return {
     },
   },
 
-
-  { "nvimtools/none-ls.nvim", optional = true, dependencies = { {
-    "williamboman/mason.nvim", opts = { ensure_installed = { "gomodifytags",
-      "impl" } }, }, }, opts = function(_, opts) local nls = require("null-ls")
+  {
+    "nvimtools/none-ls.nvim",
+    optional = true,
+    dependencies = {
+      {
+        "williamboman/mason.nvim",
+        opts = { ensure_installed = { "gomodifytags", "impl" } },
+      },
+    },
+    opts = function(_, opts)
+      local nls = require("null-ls")
       opts.sources = vim.list_extend(opts.sources or {}, {
-        nls.builtins.code_actions.gomodifytags, nls.builtins.code_actions.impl,
-        nls.builtins.formatting.goimports, nls.builtins.formatting.gofumpt, })
+        nls.builtins.code_actions.gomodifytags,
+        nls.builtins.code_actions.impl,
+        nls.builtins.formatting.goimports,
+        nls.builtins.formatting.gofumpt,
+      })
     end,
   },
-  -- {
-  --   "nvim-neotest/neotest",
-  --   event = "VeryLazy",
+  --   {
+  --   "kdheepak/lazygit.nvim",
+  --   cmd = {
+  --     "LazyGit",
+  --     "LazyGitConfig",
+  --     "LazyGitCurrentFile",
+  --     "LazyGitFilter",
+  --     "LazyGitFilterCurrentFile",
+  --   },
+  --   -- optional for floating window border decoration
   --   dependencies = {
-  --     "nvim-neotest/nvim-nio",
   --     "nvim-lua/plenary.nvim",
-  --     "antoinemadec/FixCursorHold.nvim",
-  --     "nvim-treesitter/nvim-treesitter",
-  --
-  --     "nvim-neotest/neotest-plenary",
-  --     "nvim-neotest/neotest-vim-test",
-  --
-  --     {
-  --       "fredrikaverpil/neotest-golang",
-  --       dependencies = {
-  --         {
-  --           "leoluz/nvim-dap-go",
-  --           opts = {},
-  --         },
-  --       },
-  --       branch = "main",
-  --     },
   --   },
-  --   opts = function(_, opts)
-  --     opts.adapters = opts.adapters or {}
-  --     opts.adapters["neotest-golang"] = {
-  --       go_test_args = {
-  --         "-v",
-  --         -- "-race",
-  --         "-test.v",
-  --         "-coverprofile=" .. vim.fn.getcwd() .. "/coverage.out",
-  --       },
-  --     }
-  --   end,
-  --   config = function(_, opts)
-  --     if opts.adapters then
-  --       local adapters = {}
-  --       for name, config in pairs(opts.adapters or {}) do
-  --         if type(name) == "number" then
-  --           if type(config) == "string" then
-  --             config = require(config)
-  --           end
-  --           adapters[#adapters + 1] = config
-  --         elseif config ~= false then
-  --           local adapter = require(name)
-  --           if type(config) == "table" and not vim.tbl_isempty(config) then
-  --             local meta = getmetatable(adapter)
-  --             if adapter.setup then
-  --               adapter.setup(config)
-  --             elseif adapter.adapter then
-  --               adapter.adapter(config)
-  --               adapter = adapter.adapter
-  --             elseif meta and meta.__call then
-  --               adapter(config)
-  --             else
-  --               error("Adapter " .. name .. " does not support setup")
-  --             end
-  --           end
-  --           adapters[#adapters + 1] = adapter
-  --         end
-  --       end
-  --       opts.adapters = adapters
-  --     end
-  --
-  --     require("neotest").setup(opts)
-  --   end,
+  --   -- setting the keybinding for LazyGit with 'keys' is recommended in
+  --   -- order to load the plugin when the command is run for the first time
   --   keys = {
-  --     { "<leader>ta", function() require("neotest").run.attach() end, desc = "[t]est [a]ttach" },
-  --     { "<leader>tf", function() require("neotest").run.run(vim.fn.expand("%")) end, desc = "[t]est run [f]ile" },
-  --     { "<leader>tA", function() require("neotest").run.run(vim.uv.cwd()) end, desc = "[t]est [A]ll files" },
-  --     { "<leader>tS", function() require("neotest").run.run({ suite = true }) end, desc = "[t]est [S]uite" },
-  --     { "<leader>tn", function() require("neotest").run.run() end, desc = "[t]est [n]earest" },
-  --     { "<leader>tl", function() require("neotest").run.run_last() end, desc = "[t]est [l]ast" },
-  --     { "<leader>ts", function() require("neotest").summary.toggle() end, desc = "[t]est [s]ummary" },
-  --     { "<leader>to", function() require("neotest").output.open({ enter = true, auto_close = true }) end, desc = "[t]est [o]utput" },
-  --     { "<leader>tO", function() require("neotest").output_panel.toggle() end, desc = "[t]est [O]utput panel" },
-  --     { "<leader>tt", function() require("neotest").run.stop() end, desc = "[t]est [t]erminate" },
-  --     { "<leader>td", function() require("neotest").run.run({ suite = false, strategy = "dap",args = { "-test.v" }}) end, desc = "Debug nearest test" },
-  --   },
+  --     { "<leader>lg", "<cmd>LazyGit<cr>", desc = "LazyGit" }
+  --   }
   -- },
-  --  -- DAP setup
-  -- {
-  --   "mfussenegger/nvim-dap",
-  --   event = "VeryLazy",
-  --   keys = {
-  --     {"<leader>db", function() require("dap").toggle_breakpoint() end, desc = "toggle [d]ebug [b]reakpoint" },
-  --     {"<leader>dB", function() require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: ")) end, desc = "[d]ebug [B]reakpoint"},
-  --     {"<leader>dc", function() require("dap").continue() end, desc = "[d]ebug [c]ontinue (start here)" },
-  --     {"<leader>dC", function() require("dap").run_to_cursor() end, desc = "[d]ebug [C]ursor" },
-  --     {"<leader>dg", function() require("dap").goto_() end, desc = "[d]ebug [g]o to line" },
-  --     {"<leader>do", function() require("dap").step_over() end, desc = "[d]ebug step [o]ver" },
-  --     {"<leader>dO", function() require("dap").step_out() end, desc = "[d]ebug step [O]ut" },
-  --     {"<leader>di", function() require("dap").step_into() end, desc = "[d]ebug [i]nto" },
-  --     {"<leader>dj", function() require("dap").down() end, desc = "[d]ebug [j]ump down" },
-  --     {"<leader>dk", function() require("dap").up() end, desc = "[d]ebug [k]ump up" },
-  --     {"<leader>dl", function() require("dap").run_last() end, desc = "[d]ebug [l]ast" },
-  --     {"<leader>dp", function() require("dap").pause() end, desc = "[d]ebug [p]ause" },
-  --     {"<leader>dr", function() require("dap").repl.toggle() end, desc = "[d]ebug [r]epl" },
-  --     {"<leader>dR", function() require("dap").clear_breakpoints() end, desc = "[d]ebug [R]emove breakpoints" },
-  --     {"<leader>ds", function() require("dap").session() end, desc ="[d]ebug [s]ession" },
-  --     {"<leader>dt", function() require("dap").terminate() end, desc = "[d]ebug [t]erminate" },
-  --     {"<leader>dw", function() require("dap.ui.widgets").hover() end, desc = "[d]ebug [w]idgets" },
-  --   },
-  -- },
-  --
-  -- -- DAP UI setup
-  -- {
-  --   "rcarriga/nvim-dap-ui",
-  --   event = "VeryLazy",
-  --   dependencies = {
-  --     "nvim-neotest/nvim-nio",
-  --     "mfussenegger/nvim-dap",
-  --   },
-  --   opts = {},
-  --   config = function(_, opts)
-  --     -- setup dap config by VsCode launch.json file
-  --     -- require("dap.ext.vscode").load_launchjs()
-  --     local dap = require("dap")
-  --     local dapui = require("dapui")
-  --     dapui.setup(opts)
-  --     dap.listeners.after.event_initialized["dapui_config"] = function()
-  --       dapui.open({})
-  --     end
-  --     dap.listeners.before.event_terminated["dapui_config"] = function()
-  --       dapui.close({})
-  --     end
-  --     dap.listeners.before.event_exited["dapui_config"] = function()
-  --       dapui.close({})
-  --     end
-  --   end,
-  --   keys = {
-  --     { "<leader>du", function() require("dapui").toggle({}) end, desc = "[d]ap [u]i" },
-  --     { "<leader>de", function() require("dapui").eval() end, desc = "[d]ap [e]val" },
-  --   },
-  -- },
---   {
---   "kdheepak/lazygit.nvim",
---   cmd = {
---     "LazyGit",
---     "LazyGitConfig",
---     "LazyGitCurrentFile",
---     "LazyGitFilter",
---     "LazyGitFilterCurrentFile",
---   },
---   -- optional for floating window border decoration
---   dependencies = {
---     "nvim-lua/plenary.nvim",
---   },
---   -- setting the keybinding for LazyGit with 'keys' is recommended in
---   -- order to load the plugin when the command is run for the first time
---   keys = {
---     { "<leader>lg", "<cmd>LazyGit<cr>", desc = "LazyGit" }
---   }
--- },
 }
