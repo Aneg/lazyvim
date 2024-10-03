@@ -13,6 +13,8 @@ return {
         "impl",
         "delve",
         "sqlfluff",
+        "markdownlint-cli2",
+        "markdown-toc",
       },
     },
   },
