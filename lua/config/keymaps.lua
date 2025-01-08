@@ -27,8 +27,8 @@ map({ "n", "v" }, "м", "v", { desc = "v" })
 map({ "v" }, "p", "P", { desc = "copy" })
 map({ "n" }, "n", "U", { desc = "next" })
 
-map({ "n" }, "<leader>p", "viwP", { desc = "past" })
-map({ "n" }, "<leader>y", "viwy", { desc = "copy" })
+map({ "n" }, "<leader>pp", "viwP", { desc = "past" })
+map({ "n" }, "<leader>yy", "viwy", { desc = "copy" })
 
 map("v", "p", "P")
 map("n", "U", "<C-r>")
